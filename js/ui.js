@@ -19,7 +19,44 @@ searchActionBtn.addEventListener('click', doSearch);
 modePoints.addEventListener('change', updateSearchModeUi);
 modeArea.addEventListener('change', updateSearchModeUi);
 exactSearch.addEventListener('change', doSearch);
+
+onlyResults.addEventListener('change', async () => {
+  if (onlyResults.checked) {
+    saveLayerState();
+    searchResultsOnlyMode = true;
+
+    if (searchInput.value.trim()) {
+      await doSearch();
+    } else {
+      clearSearchResultsOnlyView();
+      Object.values(overlays).forEach(layer => {
+        if (map.hasLayer(layer)) map.removeLayer(layer);
+      });
+    }
+  } else {
+    disableSearchResultsOnlyMode(true);
+  }
+});
+
 updateSearchModeUi();
+setToggleAllLayersButtonText();
+
+toggleAllLayersBtn.addEventListener('click', () => {
+  if (searchResultsOnlyMode) {
+    disableSearchResultsOnlyMode(true);
+  }
+
+  const anyVisible = Object.values(overlays).some(layer => map.hasLayer(layer));
+
+  if (anyVisible) {
+    Object.values(overlays).forEach(layer => map.removeLayer(layer));
+  } else {
+    Object.values(overlays).forEach(layer => map.addLayer(layer));
+  }
+
+  setToggleAllLayersButtonText();
+  buildLayerList();
+});
 
 (function makeSearchPanelDraggable() {
   let isDragging = false, startX = 0, startY = 0, startRight = 0, startTop = 0;
@@ -39,34 +76,3 @@ updateSearchModeUi();
 })();
 
 map.on('click', () => { if (window.innerWidth <= 768) closeAllPanels(); });
-const onlyResults = document.getElementById('onlyResults');
-
-onlyResults.addEventListener('change', () => {
-  searchResultsOnlyMode = onlyResults.checked;
-
-  if (!searchResultsOnlyMode) {
-    restoreLayerState();
-  } else if (lastSearchResults.length) {
-    saveLayerState();
-    showOnlySearchResults(lastSearchResults);
-  }
-});
-const toggleAllLayersBtn = document.getElementById('toggleAllLayersBtn');
-
-toggleAllLayersBtn.addEventListener('click', () => {
-  const anyVisible = Object.values(overlays).some(layer => map.hasLayer(layer));
-  if (searchResultsOnlyMode) {
-    document.getElementById('onlyResults').checked = false;
-    searchResultsOnlyMode = false;
-    restoreLayerState();
-  }
-  if (anyVisible) {
-    Object.values(overlays).forEach(layer => map.removeLayer(layer));
-    toggleAllLayersBtn.textContent = 'הצג הכל';
-  } else {
-    Object.values(overlays).forEach(layer => map.addLayer(layer));
-    toggleAllLayersBtn.textContent = 'הסתר הכל';
-  }
-
-  buildLayerList(); // רענון כפתורים
-});

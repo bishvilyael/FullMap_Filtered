@@ -5,6 +5,10 @@ function getActiveSearchMode() {
 function clearSearchUi() {
   searchInput.value = '';
   searchResultsEl.innerHTML = '';
+  lastSearchResults = [];
+  if (searchResultsOnlyMode) {
+    clearSearchResultsOnlyView();
+  }
 }
 
 function updateSearchModeUi() {
@@ -98,11 +102,24 @@ async function doAreaSearch() {
   const query = searchInput.value.trim();
   if (!query) {
     searchResultsEl.innerHTML = '';
+    lastSearchResults = [];
+    if (searchResultsOnlyMode) clearSearchResultsOnlyView();
     return;
   }
+
   searchResultsEl.innerHTML = '<div class="search-result-line">מחפש אזור...</div>';
+
   try {
     const items = await searchExternalArea(query);
+    lastSearchResults = [];
+
+    if (searchResultsOnlyMode) {
+      clearSearchResultsOnlyView();
+      Object.values(overlays).forEach(layer => {
+        if (map.hasLayer(layer)) map.removeLayer(layer);
+      });
+    }
+
     renderAreaResults(items);
   } catch (err) {
     console.error(err);
@@ -111,12 +128,44 @@ async function doAreaSearch() {
 }
 
 function renderSearchResults(items) {
-  if (!items.length) { searchResultsEl.innerHTML = '<div class="search-result-line">לא נמצאו תוצאות</div>'; return; }
+  if (!items.length) {
+    searchResultsEl.innerHTML = '<div class="search-result-line">לא נמצאו תוצאות</div>';
+    return;
+  }
+
   searchResultsEl.innerHTML = '';
   items.forEach(item => {
-    const row = document.createElement('div'); row.className = 'search-result-item';
-    row.innerHTML = extractSearchLines(item.name, item.descriptionText).map(line => `<div class="search-result-line">${escapeHtml(line)}</div>`).join('');
-    row.addEventListener('click', () => { ensureLayerVisible(item.layerLabel); map.setView([item.lat, item.lon], DEFAULT_ZOOM_ON_SEARCH); item.marker.openPopup(); });
+    const row = document.createElement('div');
+    row.className = 'search-result-item';
+    row.innerHTML = extractSearchLines(item.name, item.descriptionText)
+      .map(line => `<div class="search-result-line">${escapeHtml(line)}</div>`)
+      .join('');
+
+    row.addEventListener('click', () => {
+      if (searchResultsOnlyMode) {
+        map.setView([item.lat, item.lon], DEFAULT_ZOOM_ON_SEARCH);
+
+        let popupOpened = false;
+        searchResultsLayer.eachLayer(layer => {
+          const latlng = layer.getLatLng && layer.getLatLng();
+          if (!latlng || popupOpened) return;
+          if (Math.abs(latlng.lat - item.lat) < 0.0000001 && Math.abs(latlng.lng - item.lon) < 0.0000001) {
+            if (layer.openPopup) layer.openPopup();
+            popupOpened = true;
+          }
+        });
+
+        if (!popupOpened) item.marker.openPopup();
+        return;
+      }
+
+      ensureLayerVisible(item.layerLabel);
+      setToggleAllLayersButtonText();
+      buildLayerList();
+      map.setView([item.lat, item.lon], DEFAULT_ZOOM_ON_SEARCH);
+      item.marker.openPopup();
+    });
+
     searchResultsEl.appendChild(row);
   });
 }
@@ -163,6 +212,10 @@ async function doSearch() {
   const qLower = searchInput.value.trim().toLowerCase();
   if (!qLower) {
     searchResultsEl.innerHTML = '';
+    lastSearchResults = [];
+    if (searchResultsOnlyMode) {
+      clearSearchResultsOnlyView();
+    }
     return;
   }
 
@@ -175,5 +228,10 @@ async function doSearch() {
   }
 
   const limited = results.slice(0, MAX_SEARCH_RESULTS);
+  lastSearchResults = limited;
   renderSearchResults(limited);
+
+  if (searchResultsOnlyMode) {
+    applySearchResultsOnly(limited);
+  }
 }

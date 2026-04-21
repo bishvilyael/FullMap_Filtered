@@ -90,7 +90,9 @@ function getFeatureLatLng(feature) {
   }
   return null;
 }
+
 function saveLayerState() {
+  if (previousLayerState) return;
   previousLayerState = {};
   Object.keys(overlays).forEach(name => {
     previousLayerState[name] = map.hasLayer(overlays[name]);
@@ -98,45 +100,19 @@ function saveLayerState() {
 }
 
 function restoreLayerState() {
-  Object.keys(overlays).forEach(name => {
-    if (previousLayerState[name]) {
-      map.addLayer(overlays[name]);
-    } else {
-      map.removeLayer(overlays[name]);
-    }
-  });
-}
-function showOnlySearchResults(items) {
-  // כבה הכל
-  Object.values(overlays).forEach(layer => map.removeLayer(layer));
-
-  // הדלק רק שכבות רלוונטיות
-  const layersToShow = new Set(items.map(i => i.layerLabel));
-
-  layersToShow.forEach(layerName => {
-    const layer = overlays[layerName];
-    if (layer) map.addLayer(layer);
-  });
-}
-function saveLayerState() {
-  previousLayerState = {};
-  Object.keys(overlays).forEach(name => {
-    previousLayerState[name] = map.hasLayer(overlays[name]);
-  });
-}
-
-function restoreLayerState() {
+  if (!previousLayerState) return;
   Object.keys(overlays).forEach(name => {
     if (previousLayerState[name]) map.addLayer(overlays[name]);
     else map.removeLayer(overlays[name]);
   });
+  previousLayerState = null;
 }
 
 function clearSearchResultsOnlyView() {
+  searchResultsLayer.clearLayers();
   if (map.hasLayer(searchResultsLayer)) {
     map.removeLayer(searchResultsLayer);
   }
-  searchResultsLayer.clearLayers();
 }
 
 function setToggleAllLayersButtonText() {
@@ -147,10 +123,7 @@ function setToggleAllLayersButtonText() {
 
 function buildSearchResultMarker(item) {
   const marker = L.marker([item.lat, item.lon], { icon: createMarkerIcon(item.name) });
-  const popupHtml = item.marker.getPopup() ? item.marker.getPopup().getContent() : '';
-  if (popupHtml) {
-    marker.bindPopup(popupHtml, { maxWidth: 340, minWidth: 220 });
-  }
+  marker.bindPopup(item.popupHtml, { maxWidth: 340, minWidth: 220 });
   return marker;
 }
 
@@ -164,8 +137,7 @@ function applySearchResultsOnly(items) {
   if (!items || !items.length) return;
 
   items.forEach(item => {
-    const marker = buildSearchResultMarker(item);
-    searchResultsLayer.addLayer(marker);
+    searchResultsLayer.addLayer(buildSearchResultMarker(item));
   });
 
   searchResultsLayer.addTo(map);
@@ -177,4 +149,5 @@ function disableSearchResultsOnlyMode(restoreLayers = true) {
   clearSearchResultsOnlyView();
   if (restoreLayers) restoreLayerState();
   setToggleAllLayersButtonText();
+  buildLayerList();
 }

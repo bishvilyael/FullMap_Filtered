@@ -1,18 +1,45 @@
 function buildLayerList() {
   layersListEl.innerHTML = '';
   Object.values(layerRegistry).forEach(layerInfo => {
-    const block = document.createElement('div'); block.className = 'layer-block';
+    const block = document.createElement('div');
+    block.className = 'layer-block';
     block.innerHTML = `<div class="layer-row"><div class="layer-title">${escapeHtml(layerInfo.label)} (${layerInfo.items.length})</div><div class="layer-tools"><button data-action="toggle-layer">${map.hasLayer(layerInfo.layer) ? 'הסתר' : 'הצג'}</button><button data-action="toggle-items">יעלים</button></div></div><div class="layer-items"></div>`;
     const itemsDiv = block.querySelector('.layer-items');
+
     layerInfo.items.forEach(item => {
-      const row = document.createElement('div'); row.className = 'layer-item'; row.textContent = item.name || 'ללא שם';
-      row.addEventListener('click', () => { ensureLayerVisible(layerInfo.label); map.setView([item.lat, item.lon], DEFAULT_ZOOM_ON_SEARCH); item.marker.openPopup(); });
+      const row = document.createElement('div');
+      row.className = 'layer-item';
+      row.textContent = item.name || 'ללא שם';
+      row.addEventListener('click', () => {
+        if (searchResultsOnlyMode) {
+          disableSearchResultsOnlyMode(true);
+        }
+        ensureLayerVisible(layerInfo.label);
+        setToggleAllLayersButtonText();
+        buildLayerList();
+        map.setView([item.lat, item.lon], DEFAULT_ZOOM_ON_SEARCH);
+        item.marker.openPopup();
+      });
       itemsDiv.appendChild(row);
     });
+
     block.querySelector('[data-action="toggle-layer"]').addEventListener('click', (e) => {
-      if (map.hasLayer(layerInfo.layer)) { map.removeLayer(layerInfo.layer); e.target.textContent = 'הצג'; }
-      else { map.addLayer(layerInfo.layer); e.target.textContent = 'הסתר'; }
+      if (searchResultsOnlyMode) {
+        disableSearchResultsOnlyMode(true);
+      }
+
+      if (map.hasLayer(layerInfo.layer)) {
+        map.removeLayer(layerInfo.layer);
+        e.target.textContent = 'הצג';
+      } else {
+        map.addLayer(layerInfo.layer);
+        e.target.textContent = 'הסתר';
+      }
+
+      setToggleAllLayersButtonText();
+      buildLayerList();
     });
+
     block.querySelector('[data-action="toggle-items"]').addEventListener('click', () => itemsDiv.classList.toggle('open'));
     layersListEl.appendChild(block);
   });
@@ -36,17 +63,29 @@ async function loadGeoJsonLayer(filePath, layerLabel) {
     const name = getFeatureName(props);
     const descriptionHtml = normalizeDescriptionHtml(getFeatureDescription(props));
     const descriptionText = stripHtml(descriptionHtml);
+    const popupHtml = `<div class="popup-wrap"><div class="popup-title">${escapeHtml(name)}</div><div class="popup-body">${descriptionHtml}</div></div>`;
 
     const marker = L.marker(latlng, { icon: createMarkerIcon(name) });
-    marker.bindPopup(`<div class="popup-wrap"><div class="popup-title">${escapeHtml(name)}</div><div class="popup-body">${descriptionHtml}</div></div>`, { maxWidth: 340, minWidth: 220 });
+    marker.bindPopup(popupHtml, { maxWidth: 340, minWidth: 220 });
 
     layerGroup.addLayer(marker);
     allBounds.push([latlng.lat, latlng.lng]);
     markerCount++;
 
     const searchText = `${name} ${descriptionText} ${layerLabel}`;
-    const itemObj = { name, layerLabel, lat: latlng.lat, lon: latlng.lng, marker, descriptionText, searchText, searchTextLower: searchText.toLowerCase() };
-    searchableItems.push(itemObj); layerItems.push(itemObj);
+    const itemObj = {
+      name,
+      layerLabel,
+      lat: latlng.lat,
+      lon: latlng.lng,
+      marker,
+      popupHtml,
+      descriptionText,
+      searchText,
+      searchTextLower: searchText.toLowerCase()
+    };
+    searchableItems.push(itemObj);
+    layerItems.push(itemObj);
   });
 
   return { layer: layerGroup, count: markerCount, label: layerLabel, items: layerItems };
@@ -59,13 +98,25 @@ async function initMap() {
     results.forEach((result, index) => {
       const item = GEOJSON_FILES[index];
       if (result.status === 'fulfilled') {
-        const layerInfo = result.value; overlays[item.label] = layerInfo.layer; layerRegistry[item.label] = layerInfo;
-        if (item.visible) layerInfo.layer.addTo(map); totalMarkers += layerInfo.count; loadedLayers++; statusLines.push(`${item.label}: ${layerInfo.count} נקודות`);
-      } else { statusLines.push(`${item.label}: שגיאה`); console.error(`Layer load failed: ${item.file}`, result.reason); }
+        const layerInfo = result.value;
+        overlays[item.label] = layerInfo.layer;
+        layerRegistry[item.label] = layerInfo;
+        if (item.visible) layerInfo.layer.addTo(map);
+        totalMarkers += layerInfo.count;
+        loadedLayers++;
+        statusLines.push(`${item.label}: ${layerInfo.count} נקודות`);
+      } else {
+        statusLines.push(`${item.label}: שגיאה`);
+        console.error(`Layer load failed: ${item.file}`, result.reason);
+      }
     });
-    buildLayerList(); if (allBounds.length > 0) map.fitBounds(allBounds, { padding: [20, 20] });
+    buildLayerList();
+    setToggleAllLayersButtonText();
+    if (allBounds.length > 0) map.fitBounds(allBounds, { padding: [20, 20] });
     setStatus(`נטענו ${loadedLayers} שכבות\nסה"כ ${totalMarkers} נקודות\n\n${statusLines.join('\n')}`);
   } catch (err) {
-    console.error(err); setStatus('שגיאה כללית בטעינת השכבות'); alert('שגיאה בטעינת השכבות: ' + err.message);
+    console.error(err);
+    setStatus('שגיאה כללית בטעינת השכבות');
+    alert('שגיאה בטעינת השכבות: ' + err.message);
   }
 }
