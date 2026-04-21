@@ -106,3 +106,15 @@ function restoreLayerState() {
     }
   });
 }
+function showOnlySearchResults(items) {
+  // כבה הכל
+  Object.values(overlays).forEach(layer => map.removeLayer(layer));
+
+  // הדלק רק שכבות רלוונטיות
+  const layersToShow = new Set(items.map(i => i.layerLabel));
+
+  layersToShow.forEach(layerName => {
+    const layer = overlays[layerName];
+    if (layer) map.addLayer(layer);
+  });
+}
