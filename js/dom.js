@@ -18,3 +18,5 @@ const modeArea = document.getElementById('modeArea');
 const searchResultsEl = document.getElementById('searchResults');
 const layersListEl = document.getElementById('layersListBody');
 const statusBodyEl = document.getElementById('statusBody');
+const onlyResults = document.getElementById('onlyResults');
+const toggleAllLayersBtn = document.getElementById('toggleAllLayersBtn');
