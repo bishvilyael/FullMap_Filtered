@@ -51,3 +51,22 @@ onlyResults.addEventListener('change', () => {
     showOnlySearchResults(lastSearchResults);
   }
 });
+const toggleAllLayersBtn = document.getElementById('toggleAllLayersBtn');
+
+toggleAllLayersBtn.addEventListener('click', () => {
+  const anyVisible = Object.values(overlays).some(layer => map.hasLayer(layer));
+  if (searchResultsOnlyMode) {
+    document.getElementById('onlyResults').checked = false;
+    searchResultsOnlyMode = false;
+    restoreLayerState();
+  }
+  if (anyVisible) {
+    Object.values(overlays).forEach(layer => map.removeLayer(layer));
+    toggleAllLayersBtn.textContent = 'הצג הכל';
+  } else {
+    Object.values(overlays).forEach(layer => map.addLayer(layer));
+    toggleAllLayersBtn.textContent = 'הסתר הכל';
+  }
+
+  buildLayerList(); // רענון כפתורים
+});
