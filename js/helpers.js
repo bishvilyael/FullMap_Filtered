@@ -118,3 +118,63 @@ function showOnlySearchResults(items) {
     if (layer) map.addLayer(layer);
   });
 }
+function saveLayerState() {
+  previousLayerState = {};
+  Object.keys(overlays).forEach(name => {
+    previousLayerState[name] = map.hasLayer(overlays[name]);
+  });
+}
+
+function restoreLayerState() {
+  Object.keys(overlays).forEach(name => {
+    if (previousLayerState[name]) map.addLayer(overlays[name]);
+    else map.removeLayer(overlays[name]);
+  });
+}
+
+function clearSearchResultsOnlyView() {
+  if (map.hasLayer(searchResultsLayer)) {
+    map.removeLayer(searchResultsLayer);
+  }
+  searchResultsLayer.clearLayers();
+}
+
+function setToggleAllLayersButtonText() {
+  if (!toggleAllLayersBtn) return;
+  const anyVisible = Object.values(overlays).some(layer => map.hasLayer(layer));
+  toggleAllLayersBtn.textContent = anyVisible ? 'הסתר הכל' : 'הצג הכל';
+}
+
+function buildSearchResultMarker(item) {
+  const marker = L.marker([item.lat, item.lon], { icon: createMarkerIcon(item.name) });
+  const popupHtml = item.marker.getPopup() ? item.marker.getPopup().getContent() : '';
+  if (popupHtml) {
+    marker.bindPopup(popupHtml, { maxWidth: 340, minWidth: 220 });
+  }
+  return marker;
+}
+
+function applySearchResultsOnly(items) {
+  clearSearchResultsOnlyView();
+
+  Object.values(overlays).forEach(layer => {
+    if (map.hasLayer(layer)) map.removeLayer(layer);
+  });
+
+  if (!items || !items.length) return;
+
+  items.forEach(item => {
+    const marker = buildSearchResultMarker(item);
+    searchResultsLayer.addLayer(marker);
+  });
+
+  searchResultsLayer.addTo(map);
+}
+
+function disableSearchResultsOnlyMode(restoreLayers = true) {
+  searchResultsOnlyMode = false;
+  if (onlyResults) onlyResults.checked = false;
+  clearSearchResultsOnlyView();
+  if (restoreLayers) restoreLayerState();
+  setToggleAllLayersButtonText();
+}
