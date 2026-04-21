@@ -6,3 +6,14 @@ let searchResultsOnlyMode = false;
 let lastSearchResults = [];
 let previousLayerState = {};
 let totalMarkers = 0, loadedLayers = 0;
+const limited = results.slice(0, MAX_SEARCH_RESULTS);
+renderSearchResults(limited);
+
+// שמירה
+lastSearchResults = limited;
+
+// מצב "רק תוצאות"
+if (searchResultsOnlyMode) {
+  saveLayerState();
+  showOnlySearchResults(limited);
+}
