@@ -2,7 +2,7 @@
 <html lang="he" dir="rtl">
 <head>
   <meta charset="UTF-8" />
-  <title>מפת יעלים מצטברת</title>
+  <title>Leaflet GeoJSON Layers - Mobile Optimized</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <link
@@ -55,12 +55,13 @@
 
 <div id="layersList" class="layers-list-panel panel-box">
   <div class="panel-header">
-  <div class="panel-title">רשימת יעלים ממויינת</div>
-  <div style="display:flex; gap:8px; align-items:center;">
-    <button id="toggleAllLayersBtn" class="panel-close-btn" type="button">הסתר הכל</button>
-    <button id="layersClose" class="panel-close-btn" title="סגור">✕</button>
+    <div class="panel-title">רשימת יעלים ממויינת</div>
+    <div style="display:flex; gap:8px; align-items:center;">
+      <button id="toggleAllLayersBtn" class="panel-close-btn" type="button">הסתר הכל</button>
+      <button id="layersClose" class="panel-close-btn" title="סגור">✕</button>
+    </div>
   </div>
-</div>
+  <div id="layersListBody"></div>
 </div>
 
 <div id="status" class="status-box panel-box">
