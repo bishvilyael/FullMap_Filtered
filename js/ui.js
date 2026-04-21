@@ -39,3 +39,15 @@ updateSearchModeUi();
 })();
 
 map.on('click', () => { if (window.innerWidth <= 768) closeAllPanels(); });
+const onlyResults = document.getElementById('onlyResults');
+
+onlyResults.addEventListener('change', () => {
+  searchResultsOnlyMode = onlyResults.checked;
+
+  if (!searchResultsOnlyMode) {
+    restoreLayerState();
+  } else if (lastSearchResults.length) {
+    saveLayerState();
+    showOnlySearchResults(lastSearchResults);
+  }
+});
