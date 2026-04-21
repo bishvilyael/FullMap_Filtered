@@ -90,3 +90,19 @@ function getFeatureLatLng(feature) {
   }
   return null;
 }
+function saveLayerState() {
+  previousLayerState = {};
+  Object.keys(overlays).forEach(name => {
+    previousLayerState[name] = map.hasLayer(overlays[name]);
+  });
+}
+
+function restoreLayerState() {
+  Object.keys(overlays).forEach(name => {
+    if (previousLayerState[name]) {
+      map.addLayer(overlays[name]);
+    } else {
+      map.removeLayer(overlays[name]);
+    }
+  });
+}
